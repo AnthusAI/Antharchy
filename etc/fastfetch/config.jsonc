@@ -71,19 +71,19 @@
       "type": "command",
       "key": "\ue900 OS",
       "keyColor": "blue",
-      "text": "version=$(omarchy-version) && echo \"Omarchy $version\""
+      "text": "version=$(antharchy-version) && echo \"Omarchy $version\""
     },
     {
       "type": "command",
       "key": "│ ├󰘬",
       "keyColor": "blue",
-      "text": "omarchy-version-branch"
+      "text": "antharchy-version-branch"
     },
     {
       "type": "command",
       "key": "│ ├󰔫",
       "keyColor": "blue",
-      "text": "channel=$(omarchy-version-channel); echo \"$channel\""
+      "text": "channel=$(antharchy-version-channel); echo \"$channel\""
     },
     {
       "type": "kernel",
@@ -150,7 +150,7 @@
       "type": "command",
       "key": " Update",
       "keyColor": "magenta",
-      "text": "updated=$(omarchy-version-pkgs); echo \"$updated\""
+      "text": "updated=$(antharchy-version-pkgs); echo \"$updated\""
     },
     {
       "type": "custom",
