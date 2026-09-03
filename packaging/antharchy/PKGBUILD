@@ -40,15 +40,14 @@ source=()
 sha256sums=()
 
 prepare() {
-  if [[ -n "${ANTHARCHY_SRC:-}" ]]; then
-    rm -rf "$srcdir/antharchy"
-    mkdir -p "$srcdir/antharchy"
-    cp -a "${ANTHARCHY_SRC}/." "$srcdir/antharchy/"
-  elif [[ -d "../../bin" ]]; then
-    rm -rf "$srcdir/antharchy"
-    mkdir -p "$srcdir/antharchy"
-    cp -a ../.. "$srcdir/antharchy/"
-  fi
+  local src="${ANTHARCHY_SRC:-../..}"
+  rm -rf "$srcdir/antharchy"
+  mkdir -p "$srcdir/antharchy"
+  for item in bin applications config default install migrations shell themes version logo.txt logo.svg icon.txt icon.png; do
+    if [[ -e "$src/$item" ]]; then
+      cp -a "$src/$item" "$srcdir/antharchy/"
+    fi
+  done
 }
 
 package() {
@@ -68,7 +67,6 @@ package() {
     ln -sf "/usr/bin/$base" "$pkgdir/usr/share/omarchy/bin/$base"
   done
 
-  # Symlink antharchy commands into /usr/bin if needed
   ln -sf omarchy "$pkgdir/usr/bin/antharchy"
   ln -sf omarchy-version "$pkgdir/usr/bin/antharchy-version"
 
