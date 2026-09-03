@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Name=Anthropic Console
+Comment=Anthropic API & Developer Platform
+Exec=omarchy-launch-webapp https://console.anthropic.com
+Terminal=false
+Type=Application
+Icon=claude
+StartupNotify=true
+Categories=Development;Utility;

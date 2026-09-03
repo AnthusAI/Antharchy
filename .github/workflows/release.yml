@@ -1,0 +1,48 @@
+name: Build and Release Antharchy Packages
+
+on:
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+      options: --privileged
+
+    steps:
+      - name: Install build dependencies
+        run: |
+          pacman -Syu --noconfirm git base-devel pacman-contrib
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create build user
+        run: |
+          useradd -m -s /bin/bash builder
+          echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+          chown -R builder:builder .
+
+      - name: Build packages
+        run: |
+          su builder -c "./packaging/build-packages.sh ./dist"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: antharchy-packages
+          path: ./dist/*
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ./dist/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

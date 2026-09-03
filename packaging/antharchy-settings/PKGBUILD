@@ -1,0 +1,89 @@
+# Maintainer: Anthus AI <dev@anthus.ai>
+pkgname='antharchy-settings'
+pkgver=1.0.0
+pkgrel=1
+pkgdesc='Antharchy user defaults, /etc/skel content, fonts, and branding'
+arch=('any')
+url='https://github.com/AnthusAI/Antharchy'
+license=('MIT')
+provides=('omarchy-settings=4.0.2')
+conflicts=('omarchy-settings' 'omarchy-settings-dev')
+
+depends=(
+  'bash'
+  'curl'
+  'gum'
+  'hicolor-icon-theme'
+  'plymouth'
+)
+
+makedepends=(
+  'git'
+)
+
+source=()
+sha256sums=()
+
+prepare() {
+  if [[ -n "${ANTHARCHY_SRC:-}" ]]; then
+    rm -rf "$srcdir/antharchy"
+    mkdir -p "$srcdir/antharchy"
+    cp -a "${ANTHARCHY_SRC}/." "$srcdir/antharchy/"
+  elif [[ -d "../../bin" ]]; then
+    rm -rf "$srcdir/antharchy"
+    mkdir -p "$srcdir/antharchy"
+    cp -a ../.. "$srcdir/antharchy/"
+  fi
+}
+
+package() {
+  cd "$srcdir/antharchy"
+
+  install -d "$pkgdir/usr/share/omarchy/etc-overrides"
+  install -Dm644 default/bashrc "$pkgdir/usr/share/omarchy/etc-overrides/dot.bashrc"
+  
+  cat >"$pkgdir/usr/share/omarchy/etc-overrides/os-release" <<OSREL
+NAME="Antharchy"
+PRETTY_NAME="Antharchy Linux"
+ID=antharchy
+ID_LIKE="arch omarchy"
+BUILD_ID="$pkgver"
+VERSION_ID="$pkgver"
+ANSI_COLOR="38;2;240;113;120"
+HOME_URL="https://github.com/AnthusAI/Antharchy"
+DOCUMENTATION_URL="https://github.com/AnthusAI/Antharchy"
+SUPPORT_URL="https://github.com/AnthusAI/Antharchy/issues"
+BUG_REPORT_URL="https://github.com/AnthusAI/Antharchy/issues"
+LOGO=antharchy
+OSREL
+
+  # /etc/skel/.local/share/applications from applications/**
+  install -d "$pkgdir/etc/skel/.local/share/applications"
+  if compgen -G 'applications/*.desktop' >/dev/null; then
+    cp applications/*.desktop "$pkgdir/etc/skel/.local/share/applications/"
+  fi
+
+  # default/** ships to /usr/share/omarchy/default/
+  install -d "$pkgdir/usr/share/omarchy/default"
+  cp -a default/. "$pkgdir/usr/share/omarchy/default/"
+
+  # System font
+  if [[ -f default/fonts/omarchy/omarchy.ttf ]]; then
+    install -Dm644 default/fonts/omarchy/omarchy.ttf "$pkgdir/usr/share/fonts/omarchy/omarchy.ttf"
+  fi
+
+  # Branding assets (logos, icons)
+  install -Dm644 logo.txt "$pkgdir/usr/share/omarchy/logo.txt"
+  install -Dm644 icon.txt "$pkgdir/usr/share/omarchy/icon.txt"
+  install -Dm644 logo.svg "$pkgdir/usr/share/omarchy/logo.svg" 2>/dev/null || true
+  install -Dm644 icon.png "$pkgdir/usr/share/omarchy/icon.png" 2>/dev/null || true
+
+  # Seed branding into /etc/skel
+  install -Dm644 logo.txt "$pkgdir/etc/skel/.config/omarchy/branding/screensaver.txt"
+  install -Dm644 icon.txt "$pkgdir/etc/skel/.config/omarchy/branding/about.txt"
+
+  # Support binaries
+  install -Dm755 bin/omarchy-upload-log "$pkgdir/usr/bin/omarchy-upload-log" 2>/dev/null || true
+  install -Dm755 bin/omarchy-debug      "$pkgdir/usr/bin/omarchy-debug" 2>/dev/null || true
+  install -Dm755 bin/omarchy-debug-idle "$pkgdir/usr/bin/omarchy-debug-idle" 2>/dev/null || true
+}
