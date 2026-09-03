@@ -2,6 +2,7 @@
 
 **Antharchy** is a beautiful, modern & agentic Arch Linux desktop distribution by [Anthus AI](https://github.com/AnthusAI), built for AI-assisted engineering and cloud development.
 
+![Antharchy EC2](screenshot-ec2.jpg)
 ![Antharchy Desktop](screenshot.png)
 
 Based on [Hyprland](https://hyprland.org/), [UWSM](https://github.com/Vladimir-csp/uwsm), and customized for high-efficiency development workflows with Anthropic Claude, Claude Code, and modern tooling.
