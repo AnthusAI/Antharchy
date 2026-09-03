@@ -1,6 +1,6 @@
 # Antharchy ⚡
 
-**Antharchy** is a beautiful, modern & agentic Arch Linux desktop distribution by [Anthus AI](https://github.com/AnthusAI), built for AI-assisted engineering and cloud development.
+**Antharchy** is a beautiful, modern & agentic Arch Linux desktop distribution by [Anthus AI](https://github.com/AnthusAI), built for use by bots in agent factories.  A fork of Omarchy.
 
 ![Antharchy EC2](screenshot-ec2.jpg)
 ![Antharchy Desktop](screenshot.png)
