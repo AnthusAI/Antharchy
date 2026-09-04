@@ -37,6 +37,29 @@ sudo pacman -Sy antharchy antharchy-settings
 
 ---
 
+## Running locally on Apple Silicon
+
+Antharchy is a Linux desktop, not a macOS app. On an Apple Silicon Mac it runs in a Lima VM: Arch Linux ARM, Hyprland on virtio-gpu, this git tree mounted at `/antharchy`.
+
+```bash
+brew install lima qemu
+limactl start --yes --name antharchy lima/antharchy.yaml
+open vnc://127.0.0.1:5901   # QEMU display (password in ~/.lima/antharchy/vncpassword)
+open vnc://127.0.0.1:5902   # WayVNC of the Hyprland session
+```
+
+macOS Screen Sharing keeps Command for itself, so it never reaches Hyprland. In this VM **Option is Super** (`altwin:swap_lalt_lwin`):
+
+- Option+Space — Omarchy menu (then About for the bot avatar)
+- Option+Return — terminal
+- Option+K — keybindings cheatsheet
+
+Reconnect to `vnc://127.0.0.1:5902` (the Hyprland session). The QEMU display on 5901 is the same desktop; use whichever client actually sends Option through.
+
+**Super+K** is the keybindings cheatsheet. **Super+Space** (Option+Space) is the Omarchy menu.
+
+The official Omarchy ISO and `pkgs.omarchy.org` are x86_64-only. This local VM is aarch64 and uses Arch Linux ARM packages plus the mounted checkout.
+
 ## Running in AWS EC2
 
 Antharchy natively supports headless EC2 execution using virtual KMS and software rendering:
