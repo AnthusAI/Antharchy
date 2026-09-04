@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Name=Claude
+Comment=Anthropic Claude AI Assistant
+Exec=omarchy-launch-webapp https://claude.ai
+Terminal=false
+Type=Application
+Icon=claude
+StartupNotify=true
+Categories=Development;Office;Utility;

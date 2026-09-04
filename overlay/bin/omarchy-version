@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# omarchy:summary=Print the installed Antharchy version
+
+# Antharchy override of the upstream command.
+#
+# Upstream loops over `omarchy-dev` then `omarchy` because its edge channel
+# ships a differently-named package. Antharchy ships one package name in every
+# channel and distinguishes channels by repo URL alone, so this is a single
+# lookup. It has to be `antharchy` specifically: pacman -Q resolves real
+# package names, never `provides`, so asking for `omarchy` here returns
+# nothing even though we provide it.
+#
+# The dev-checkout branch is upstream's, unchanged.
+
+omarchy_path=${OMARCHY_PATH:-/usr/share/omarchy}
+omarchy_path=${omarchy_path%/}
+
+if [[ $omarchy_path != "/usr/share/omarchy" ]]; then
+  hash=$(git -C "$omarchy_path" rev-parse --short HEAD 2>/dev/null || true)
+
+  if [[ -n $hash ]]; then
+    echo "dev ($hash)"
+  else
+    echo "dev"
+  fi
+
+  exit 0
+fi
+
+version=$(pacman -Q antharchy 2>/dev/null | awk '{ print $2 }')
+
+[[ -n $version ]] || exit 1
+
+echo "$version"

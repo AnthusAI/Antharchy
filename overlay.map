@@ -1,0 +1,91 @@
+# Classification of every file under overlay/.
+#
+#   replace  the path MUST already exist in the pinned upstream commit.
+#            We are taking ownership of an upstream file. If upstream renames
+#            or deletes it, this row fails the build -- otherwise we would go
+#            on shipping a dead override that nothing notices.
+#
+#   new      the path MUST NOT exist in the pinned upstream commit.
+#            We are adding a file. If upstream starts shipping one at the same
+#            path, this row fails the build -- otherwise a plain copy would
+#            silently clobber it.
+#
+# The distinction is the point. A plain rsync overlay succeeds forever, in
+# both of those situations, and tells you nothing.
+#
+# mode     path
+
+# ── Identity ─────────────────────────────────────────────────────────────────
+# pacman -Q resolves real package names, never `provides`, so every upstream
+# command that probes for the `omarchy` package reports nothing on an
+# Antharchy system: no version, channel "unknown", and a permanently dark
+# SystemUpdate widget in the bar. These are whole-file replacements rather
+# than patches because each is a behaviour rewrite; as patches they would
+# conflict on any upstream edit to the same file.
+replace  bin/omarchy-version
+replace  bin/omarchy-version-channel
+replace  bin/omarchy-channel-current
+replace  bin/omarchy-update-available
+replace  bin/omarchy-channel-set
+replace  bin/omarchy-update-keyring
+
+# ── CLI aliases ──────────────────────────────────────────────────────────────
+# Symlinks, matching how upstream ships its own bin/ symlinks.
+new      bin/antharchy
+new      bin/antharchy-version
+
+# The pinned-source model means the dev channel cannot link the overlay repo
+# directly; this materializes a tree first. Referenced by omarchy-channel-set.
+new      bin/antharchy-dev-checkout
+
+# ── Package channels ─────────────────────────────────────────────────────────
+# omarchy-refresh-pacman copies these over /etc/pacman.conf wholesale. That is
+# only destructive while the templates are upstream's -- once they are ours and
+# carry [antharchy], the command is correct as written and is left unpatched.
+#
+# These currently describe the aarch64 repo set (Arch Linux ARM, no multilib,
+# no [omarchy]). Per-architecture generation lands with the PKGBUILDs in
+# Phase 2; see docs/overlay.md.
+replace  default/pacman/pacman-stable.conf
+replace  default/pacman/pacman-rc.conf
+replace  default/pacman/pacman-edge.conf
+replace  default/pacman/mirrorlist-stable
+replace  default/pacman/mirrorlist-rc
+replace  default/pacman/mirrorlist-edge
+
+# ── Branding ─────────────────────────────────────────────────────────────────
+# antharchy-settings seeds logo.txt and icon.txt into /etc/skel as the
+# screensaver and About art, so replacing them here rebrands both surfaces
+# with no runtime work.
+#
+# icon.txt is 24-bit TrueColor ANSI half-block art rendered at a terminal cell
+# aspect ratio of 0.395. The generator that produced it was never committed --
+# see branding/tools/README.md.
+replace  logo.txt
+replace  icon.txt
+replace  icon.png
+
+# NOTE: logo.svg is deliberately absent. It is still upstream's Omarchy
+# wordmark and we have no Antharchy replacement yet; listing it here with
+# upstream's own content would be an override that claims to change something
+# and does not. Outstanding content work.
+
+# ── Version ──────────────────────────────────────────────────────────────────
+# Upstream's `version` file reads 4.0.0.alpha at every commit on quattro -- it
+# is a dev marker, not a release number. Ours is derived from upstream.lock so
+# there is one version number in the project.
+replace  version
+
+# ── Applications ─────────────────────────────────────────────────────────────
+# Replacing the 37signals web apps removed in delete.list.
+#
+# NOTE: both reference Icon=claude and no such icon file exists yet, so they
+# render with a fallback icon. Outstanding content work.
+new      applications/Claude.desktop
+new      applications/Anthropic Console.desktop
+
+# ── Antharchy-owned tests ────────────────────────────────────────────────────
+# Upstream's version-, channel- and update-available-tests assert upstream's
+# package NAMES and its -dev pair, so they cannot pass here by construction.
+# This is the test for the model we actually have.
+new      test/antharchy.d/identity-test.sh

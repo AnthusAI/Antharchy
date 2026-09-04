@@ -1,0 +1,17 @@
+# Surgical edits to upstream files, applied in this order to the pristine tree.
+#
+# Blank lines and '#' comments are ignored. Patches apply with zero fuzz
+# (`git apply --whitespace=error`, never -3), so any upstream context change
+# fails the build loudly rather than landing a half-correct hunk.
+#
+# GROWTH RULE: a patch that grows past a few hunks has stopped being a
+# surgical edit. Promote it to a `replace` entry in overlay.map instead --
+# a whole-file override is reviewable and cannot rot silently, whereas a
+# large patch will conflict on every upstream touch. See docs/overlay.md.
+
+0010-packages-antharchy-delta.patch
+0020-preinstalls-track-package-list.patch
+0030-mimeapps-drop-hey-mailto.patch
+0040-provision-user-drop-hey-mailto.patch
+0050-bindings-drop-hey-webapps.patch
+0060-fastfetch-brand-label.patch

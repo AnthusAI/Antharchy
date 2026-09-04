@@ -1,0 +1,98 @@
+#!/bin/bash
+
+# omarchy:summary=Set the Antharchy package channel.
+# omarchy:args=<stable|rc|edge|dev>
+# omarchy:requires-sudo=true
+
+# Antharchy override of the upstream command.
+#
+# Upstream's version destroys a derivative twice over, and both are silent:
+#
+#   1. `omarchy-refresh-pacman "$pacman_channel"` copies the shipped channel
+#      template over /etc/pacman.conf wholesale. With upstream's template that
+#      removes the [antharchy] repo entirely.
+#   2. `pacman -S --needed --noconfirm --ask 4 omarchy omarchy-settings` then
+#      installs UPSTREAM's packages, which conflict with ours -- and `--ask 4`
+#      is precisely the flag that auto-accepts a conflict replacement. A user
+#      who touches the channel row in the menu loses Antharchy without a
+#      prompt.
+#
+# Both are fixed here rather than by patching, because the fix is a rewrite:
+#
+#   - The package names are ours in every channel. Antharchy has no -dev pair;
+#     channels differ only by the configured repo URL. That also means there
+#     is no replacement prompt to accept, so --ask 4 is dropped outright.
+#   - refresh-pacman is now safe and stays: the templates it copies are ours
+#     (overlay/default/pacman/), and they carry [antharchy]. The
+#     pre-refresh-pacman hook still fires afterward for user customization.
+#   - `dev` cannot clone a runnable tree any more, because the Antharchy repo
+#     is an overlay, not an Omarchy tree. It delegates to
+#     antharchy-dev-checkout, which materializes a tree and links that.
+
+set -euo pipefail
+
+usage() { echo "Usage: omarchy-channel-set [stable|rc|edge|dev]"; }
+fail() { echo "Error: $*" >&2; exit 1; }
+
+confirm_dev() {
+  cat <<'WARNING'
+
+The dev channel links Antharchy to a source tree materialized from the
+overlay repository in ~/antharchy. It's exclusively intended for developers
+working on Antharchy itself.
+
+WARNING
+
+  gum confirm --default=false "Switch to dev channel?"
+}
+
+(( $# > 0 )) || { usage; exit 1; }
+
+dev_checkout=""
+channel="$1"
+leaving_dev=0
+
+# One package pair in every channel. The channel is the repo URL, nothing else.
+packages=(antharchy antharchy-settings)
+
+case "$channel" in
+  stable | rc | edge)
+    pacman_channel="$channel"
+    ;;
+  dev)
+    confirm_dev || { echo "Cancelled."; exit 0; }
+    dev_checkout="$HOME/antharchy"
+    pacman_channel=edge
+    ;;
+  *)
+    echo "Unknown channel: $channel" >&2
+    usage >&2
+    exit 1
+    ;;
+esac
+
+if [[ -z $dev_checkout && ${OMARCHY_PATH:-/usr/share/omarchy} != "/usr/share/omarchy" ]]; then
+  leaving_dev=1
+fi
+
+if [[ -n $dev_checkout ]]; then
+  # Clones the overlay repo if needed, runs tools/apply-overlay.sh, and
+  # omarchy-dev-link's the materialized tree rather than the overlay itself.
+  antharchy-dev-checkout "$dev_checkout" --no-reboot ||
+    fail "could not prepare a dev checkout at $dev_checkout"
+  omarchy-state set reboot-required
+fi
+
+omarchy-refresh-pacman "$pacman_channel"
+sudo env OMARCHY_UPDATE_PACMAN=1 pacman -S --needed --noconfirm "${packages[@]}"
+
+if [[ -z $dev_checkout ]]; then
+  omarchy-dev-unlink --no-reboot
+  export OMARCHY_PATH=/usr/share/omarchy
+
+  if (( leaving_dev )); then
+    omarchy-state set reboot-required
+  fi
+fi
+
+omarchy-update -y

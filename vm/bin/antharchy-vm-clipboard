@@ -1,0 +1,119 @@
+#!/bin/bash
+#
+#  omarchy-arm-clipboard - clipboard shared with the Mac, through the shared
+#  UTM shared folder.
+#
+#  WHY IT IS NEEDED
+#  UTM offers "Share clipboard", but that only works if the guest runs
+#  spice-vdagent, and spice-vdagent's clipboard is pure X11: its clipboard.c
+#  delegates everything to vdagent_x11_* and there is not a single reference to
+#  wlr-data-control in its code. Under Hyprland (native Wayland) it cannot
+#  work, however happily the service starts.
+#
+#  HOW IT WORKS
+#  Watches /mnt/share/.clipboard in both directions: if the file changes, it
+#  copies it to the guest clipboard; if the guest clipboard changes, it writes
+#  it to the file. On the Mac an equivalent script does the same with
+#  pbcopy/pbpaste. Text only.
+#
+#  USO
+#    omarchy-arm-clipboard             watch (started by the user service)
+#    omarchy-arm-clipboard --install   install the service and start it
+#    omarchy-arm-clipboard --host      print the script for the Mac
+#
+set -uo pipefail
+
+SHARE="${OMARCHY_CLIPBOARD_DIR:-/mnt/share}"
+FILE="$SHARE/.clipboard"
+INTERVAL="${OMARCHY_CLIPBOARD_INTERVAL:-1}"
+
+usage() { sed -n '3,26p' "$0" | sed 's/^#\{0,2\} \{0,1\}//'; }
+
+do_install() {
+  mkdir -p ~/.config/systemd/user
+  cat > ~/.config/systemd/user/omarchy-arm-clipboard.service <<'UNIT'
+[Unit]
+Description=Shared clipboard with the host (via UTM shared folder)
+After=graphical-session.target
+PartOf=graphical-session.target
+ConditionEnvironment=WAYLAND_DISPLAY
+# With no SPICE channel from the host (UTM with clipboard sharing off, or a
+# different hypervisor) the agent has nobody to talk to. Skipping cleanly
+# beats failing and being restarted every few seconds for the whole session.
+# Reported by mphaxise in #13.
+ConditionPathExists=/dev/virtio-ports/com.redhat.spice.0
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/omarchy-arm-clipboard
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=graphical-session.target
+UNIT
+  systemctl --user daemon-reload
+  systemctl --user enable --now omarchy-arm-clipboard.service && echo "servicio activo"
+  systemctl --user --no-pager status omarchy-arm-clipboard.service | head -5
+}
+
+host_script() {
+  cat <<'MACEOF'
+#!/bin/bash
+# Run this ON THE MAC. Syncs the clipboard with the VM through whichever
+# folder you have shared in the VM's UTM settings.
+#   ./clipboard-mac.sh ~/path/to/the/shared/folder
+set -uo pipefail
+DIR="${1:?usage: $0 <folder shared with the VM>}"
+F="$DIR/.clipboard"
+mkdir -p "$DIR"; touch "$F"
+last_local=""; last_remote="$(cat "$F" 2>/dev/null || true)"
+while :; do
+  actual="$(pbpaste 2>/dev/null || true)"
+  if [ "$actual" != "$last_local" ] && [ -n "$actual" ]; then
+    printf '%s' "$actual" > "$F"; last_local="$actual"; last_remote="$actual"
+  fi
+  remote_sum="$(cat "$F" 2>/dev/null || true)"
+  if [ "$remote_sum" != "$last_remote" ] && [ -n "$remote_sum" ]; then
+    printf '%s' "$remote_sum" | pbcopy; last_remote="$remote_sum"; last_local="$remote_sum"
+  fi
+  sleep 1
+done
+MACEOF
+}
+
+watch_folder() {
+  command -v wl-paste >/dev/null || { echo "wl-clipboard is missing" >&2; exit 1; }
+  if [ ! -d "$SHARE" ]; then
+    echo "there is no shared folder at $SHARE." >&2
+    echo "In UTM: VM Settings -> Sharing -> pick a folder, then restart." >&2
+    exit 1
+  fi
+  touch "$FILE" 2>/dev/null || { echo "cannot write to $FILE" >&2; exit 1; }
+  local last_local last_remote actual remote_sum
+  last_local="$(wl-paste --no-newline 2>/dev/null || true)"
+  last_remote="$(cat "$FILE" 2>/dev/null || true)"
+  while :; do
+    # guest -> file
+    actual="$(wl-paste --no-newline 2>/dev/null || true)"
+    if [ "$actual" != "$last_local" ] && [ -n "$actual" ]; then
+      printf '%s' "$actual" > "$FILE"
+      last_local="$actual"; last_remote="$actual"
+    fi
+    # file -> guest
+    remote_sum="$(cat "$FILE" 2>/dev/null || true)"
+    if [ "$remote_sum" != "$last_remote" ] && [ -n "$remote_sum" ]; then
+      printf '%s' "$remote_sum" | wl-copy
+      last_remote="$remote_sum"; last_local="$remote_sum"
+    fi
+    sleep "$INTERVAL"
+  done
+}
+
+case "${1:-}" in
+  --install) do_install ;;
+  --host)    host_script ;;
+  -h|--help) usage ;;
+  "")        watch_folder ;;
+  *)         echo "unknown option: $1" >&2; usage >&2; exit 1 ;;
+esac

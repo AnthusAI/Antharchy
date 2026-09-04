@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# omarchy:summary=Print the active Antharchy package channel
+
+# Antharchy override of the upstream command.
+#
+# Upstream reads two things: which Arch mirror is configured (from
+# /etc/pacman.d/mirrorlist) and which package repo is configured (from
+# /etc/pacman.conf), then prints "mirror / pkgs" when they disagree.
+#
+# Antharchy runs no Arch mirror. End-user systems take core/extra from stock
+# Arch on x86_64 or from Arch Linux ARM on aarch64, and only [antharchy] is
+# ours. Reading the mirrorlist would therefore always report "unknown" and the
+# output would permanently read "unknown / edge".
+#
+# So there is one source of truth here: the [antharchy] Server line. One
+# token out, which is what omarchy-channel-current already consumes via
+# `awk '{ print $1 }'`.
+
+set -euo pipefail
+
+conf=/etc/pacman.conf
+
+[[ -r $conf ]] || { echo unknown; exit 0; }
+
+# Match the channel segment of the repo URL. Anchored on the host so a
+# user's unrelated repo that happens to contain "/edge/" cannot match.
+server=$(awk '
+  /^\[antharchy\]/ { in_repo = 1; next }
+  /^\[/            { in_repo = 0 }
+  in_repo && /^[[:space:]]*Server[[:space:]]*=/ { print; exit }
+' "$conf")
+
+case "$server" in
+  *@@ANTHARCHY_DOMAIN@@/stable/*) echo stable ;;
+  *@@ANTHARCHY_DOMAIN@@/rc/*) echo rc ;;
+  *@@ANTHARCHY_DOMAIN@@/edge/*) echo edge ;;
+  *) echo unknown ;;
+esac

@@ -1,0 +1,34 @@
+#!/bin/bash
+
+# omarchy:summary=Print the active Antharchy package channel
+
+# Antharchy override of the upstream command.
+#
+# Upstream distinguishes edge from stable/rc by which package NAME is
+# installed: omarchy-dev means edge, omarchy means stable-or-rc. Antharchy has
+# no -dev pair -- the same `antharchy` package ships in all three channels and
+# only the configured repo URL differs -- so package presence carries no
+# channel information and the whole heuristic collapses into a delegation.
+#
+# Dropping the -dev pair is also what removes upstream's `--ask 4` footgun in
+# omarchy-channel-set: with one package name there is no replacement prompt to
+# auto-accept.
+
+set -euo pipefail
+
+# A linked source checkout wins over whatever is installed, since it overrides
+# the packaged tree. Upstream's branch, unchanged.
+if [[ ${OMARCHY_PATH:-/usr/share/omarchy} != "/usr/share/omarchy" ]]; then
+  echo dev
+  exit 0
+fi
+
+if pacman -Q antharchy antharchy-settings >/dev/null 2>&1; then
+  channel=$(omarchy-version-channel 2>/dev/null | awk '{ print $1 }')
+  case "$channel" in
+    stable | rc | edge) echo "$channel" ;;
+    *) echo unknown ;;
+  esac
+else
+  echo unknown
+fi

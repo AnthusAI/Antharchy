@@ -1,0 +1,8 @@
+# Arch Linux ARM. Antharchy runs no mirror of its own, so all three channels
+# share one base mirrorlist; the channel lives in the [antharchy] Server line
+# in pacman.conf, not here.
+#
+# NOTE: Arch Linux ARM publishes no archive service, so unlike upstream's
+# frozen stable-mirror there is no way to pin ARM's base to a snapshot. ARM
+# stable is built against a moving base. See docs/architecture.md.
+Server = http://mirror.archlinuxarm.org/$arch/$repo

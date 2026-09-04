@@ -1,0 +1,66 @@
+#!/bin/bash
+
+# omarchy:summary=Materialize an Antharchy source tree and link it for development
+# omarchy:group=dev
+# omarchy:args=[checkout-dir] [--no-reboot] [--from <overlay-dir>]
+# omarchy:examples=antharchy dev checkout ~/antharchy
+
+# The pinned-source model costs one step here that upstream does not pay.
+#
+# Upstream's `omarchy-channel-set dev` clones basecamp/omarchy and links the
+# clone directly, because that repo IS a runnable Omarchy tree. The Antharchy
+# repository is an overlay: a pin, a patch series and a handful of whole files.
+# It is deliberately not runnable, so it cannot be linked as-is.
+#
+# So: clone (or reuse) the overlay repo, run its apply-overlay.sh to produce a
+# real tree under ~/.local/share/antharchy/src, and omarchy-dev-link THAT.
+# The overlay stays editable in place and re-running this command rebuilds.
+
+set -euo pipefail
+
+OVERLAY_REPO=https://github.com/AnthusAI/antharchy.git
+checkout="$HOME/antharchy"
+materialized="$HOME/.local/share/antharchy/src"
+prompt_reboot=1
+from=""
+
+fail() { echo "antharchy-dev-checkout: $*" >&2; exit 1; }
+
+while (( $# > 0 )); do
+  case "$1" in
+    --no-reboot) prompt_reboot=0; shift ;;
+    --from) from="$2"; shift 2 ;;
+    -h | --help)
+      echo "Usage: antharchy dev checkout [checkout-dir] [--no-reboot] [--from <overlay-dir>]"
+      exit 0
+      ;;
+    -*) fail "unknown option: $1" ;;
+    *) checkout="$1"; shift ;;
+  esac
+done
+
+# --from points at an already-present overlay tree, e.g. a Lima bind mount.
+if [[ -n $from ]]; then
+  [[ -d $from ]] || fail "--from $from is not a directory"
+  checkout="$from"
+elif [[ -d $checkout/.git ]]; then
+  echo "Updating overlay checkout at $checkout"
+  git -C "$checkout" pull --ff-only
+elif [[ -e $checkout ]]; then
+  fail "$checkout exists and is not a git checkout"
+else
+  echo "Cloning the Antharchy overlay into $checkout"
+  git clone "$OVERLAY_REPO" "$checkout"
+fi
+
+[[ -x $checkout/tools/apply-overlay.sh ]] ||
+  fail "$checkout does not look like the Antharchy overlay (no tools/apply-overlay.sh)"
+
+echo "Materializing the Antharchy tree into $materialized"
+mkdir -p "$(dirname "$materialized")"
+"$checkout/tools/apply-overlay.sh" --into "$materialized" ||
+  fail "apply-overlay.sh failed; the tree was not linked"
+
+link_args=("$materialized")
+(( prompt_reboot )) || link_args+=(--no-reboot)
+omarchy-dev-link "${link_args[@]}"

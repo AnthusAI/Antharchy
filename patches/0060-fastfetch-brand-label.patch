@@ -1,0 +1,13 @@
+diff --git a/etc/fastfetch/config.jsonc b/etc/fastfetch/config.jsonc
+index df2fc55..d3c12ca 100644
+--- a/etc/fastfetch/config.jsonc
++++ b/etc/fastfetch/config.jsonc
+@@ -71,7 +71,7 @@
+       "type": "command",
+       "key": "\ue900 OS",
+       "keyColor": "blue",
+-      "text": "version=$(omarchy-version) && echo \"Omarchy $version\""
++      "text": "version=$(omarchy-version) && echo \"Antharchy $version\""
+     },
+     {
+       "type": "command",

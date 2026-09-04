@@ -1,0 +1,12 @@
+diff --git a/bin/omarchy-provision-user b/bin/omarchy-provision-user
+index 0d59049..d60e3d6 100755
+--- a/bin/omarchy-provision-user
++++ b/bin/omarchy-provision-user
+@@ -109,7 +109,6 @@ source "$OMARCHY_INSTALL/user/all.sh"
+ 
+ omarchy-refresh-applications
+ env -u BROWSER xdg-settings set default-web-browser chromium.desktop
+-xdg-mime default HEY.desktop x-scheme-handler/mailto
+ 
+ if (( first_install )); then
+   mkdir -p "$state_dir/migrations"

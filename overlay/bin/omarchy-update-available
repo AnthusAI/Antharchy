@@ -1,0 +1,47 @@
+#!/bin/bash
+
+# omarchy:summary=Check whether Antharchy updates are available.
+
+# Antharchy override of the upstream command.
+#
+# Upstream probes `omarchy-dev` then `omarchy` with `pacman -Qq`. On an
+# Antharchy system neither name is installed -- we provide omarchy, and
+# pacman -Qq does not resolve provides -- so $package stays empty, the
+# checkupdates filter matches nothing, and this always reports "up to date".
+#
+# That is what leaves the bar's SystemUpdate widget permanently dark: the
+# widget calls this command and believes it.
+
+set -euo pipefail
+
+updates=()
+
+if [[ ${OMARCHY_PATH:-/usr/share/omarchy} != "/usr/share/omarchy" ]]; then
+  upstream=$(git -C "$OMARCHY_PATH" rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || true)
+  if [[ -n $upstream ]]; then
+    GIT_TERMINAL_PROMPT=0 timeout 10 git -C "$OMARCHY_PATH" fetch --quiet 2>/dev/null || true
+
+    behind=$(git -C "$OMARCHY_PATH" rev-list --count "HEAD..$upstream" 2>/dev/null || echo 0)
+    if (( behind > 0 )); then
+      commit_label=commits
+      (( behind == 1 )) && commit_label=commit
+      updates+=("antharchy-dev-checkout $behind new $commit_label on $upstream")
+    fi
+  fi
+fi
+
+if pacman -Qq antharchy >/dev/null 2>&1; then
+  update=$(checkupdates --nocolor 2>/dev/null | awk '$1 == "antharchy" { print; exit }' || true)
+fi
+
+if [[ -n ${update:-} ]]; then
+  updates+=("$update")
+fi
+
+if (( ${#updates[@]} > 0 )); then
+  printf '%s\n' "${updates[@]}"
+  exit 0
+else
+  echo "Antharchy is up to date"
+  exit 1
+fi

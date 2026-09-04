@@ -1,0 +1,72 @@
+#!/bin/bash
+# Install Antharchy the same way EC2 does: antharchy-settings + antharchy pacman
+# packages, then user finalization. Falls back cleanly when packaging is missing.
+set -euo pipefail
+
+log()  { echo ""; echo "==> [antharchy-dist] $*"; }
+warn() { echo "!!  [antharchy-dist] $*"; }
+
+SRC="${ANTHARCHY_SRC:-${OMARCHY_PATH:-$HOME/.local/share/omarchy}}"
+export ANTHARCHY_SRC="$SRC"
+export PATH="/usr/bin:/usr/local/bin:${OMARCHY_PATH:-/usr/share/omarchy}/bin:$PATH"
+
+if [[ ! -d $SRC/packaging/antharchy-settings || ! -d $SRC/packaging/antharchy ]]; then
+  warn "packaging/ not found under $SRC; skipping distribution install"
+  exit 1
+fi
+
+log "building antharchy-settings and antharchy packages"
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+cp -a "$SRC/packaging/antharchy-settings" "$SRC/packaging/antharchy" "$work/"
+(
+  cd "$work/antharchy-settings"
+  makepkg -f --noconfirm --nodeps
+)
+(
+  cd "$work/antharchy"
+  makepkg -f --noconfirm --nodeps
+)
+
+log "installing packages with pacman"
+if [[ -L /usr/share/omarchy ]]; then
+  sudo rm -f /usr/share/omarchy
+fi
+sudo pacman -U --noconfirm --needed \
+  "$work/antharchy-settings"/*.pkg.tar.* \
+  "$work/antharchy"/*.pkg.tar.*
+
+export OMARCHY_PATH=/usr/share/omarchy
+export OMARCHY_INSTALL="$OMARCHY_PATH/install"
+
+log "applying /etc overrides shipped with antharchy-settings"
+if [[ -f $OMARCHY_PATH/etc-overrides/os-release ]]; then
+  sudo cp -f "$OMARCHY_PATH/etc-overrides/os-release" /etc/os-release
+fi
+if [[ -f $OMARCHY_PATH/etc-overrides/dot.bashrc ]]; then
+  sudo cp -f "$OMARCHY_PATH/etc-overrides/dot.bashrc" /etc/skel/.bashrc
+  cp -f "$OMARCHY_PATH/etc-overrides/dot.bashrc" ~/.bashrc
+fi
+
+# The PKGBUILDs do not ship the full etc/ tree; copy what the ARM builder needs
+# from the checkout that was used to build the packages.
+if [[ -d $SRC/etc ]]; then
+  sudo install -Dm644 "$SRC/etc/profile.d/omarchy.sh" /etc/profile.d/omarchy.sh 2>/dev/null || true
+  sudo install -Dm644 "$SRC/etc/sddm.conf.d/10-theme.conf" /etc/sddm.conf.d/10-theme.conf 2>/dev/null || true
+  sudo install -Dm644 "$SRC/etc/sddm.conf.d/10-wayland.conf" /etc/sddm.conf.d/10-wayland.conf 2>/dev/null || true
+  [[ -d $SRC/etc/fastfetch ]] && sudo cp -a "$SRC/etc/fastfetch" /etc/ 2>/dev/null || true
+fi
+
+mkdir -p ~/.config/omarchy/branding
+cp -f "$OMARCHY_PATH/icon.txt" ~/.config/omarchy/branding/about.txt
+cp -f "$OMARCHY_PATH/logo.txt" ~/.config/omarchy/branding/screensaver.txt
+if [[ -f /usr/share/fonts/omarchy/omarchy.ttf ]]; then
+  fc-cache -f >/dev/null 2>&1 || true
+fi
+
+log "finalizing user with distribution defaults"
+omarchy-provision-user --force --first-install || warn "omarchy-provision-user reported errors"
+omarchy-provision-first-run --force || warn "omarchy-provision-first-run reported errors"
+
+log "distribution install complete ($(grep PRETTY_NAME /etc/os-release | cut -d= -f2))"
+exit 0

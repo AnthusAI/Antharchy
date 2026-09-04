@@ -1,0 +1,34 @@
+diff --git a/bin/omarchy-install-preinstalls b/bin/omarchy-install-preinstalls
+index 549ce79..aba15be 100755
+--- a/bin/omarchy-install-preinstalls
++++ b/bin/omarchy-install-preinstalls
+@@ -14,12 +14,8 @@ if gum confirm "Are you sure you want to restore all preinstalled web apps, TUI
+   if ! omarchy-pkg-add \
+     aether \
+     cliamp \
+-    libreoffice-fresh \
+-    xournalpp \
+     pinta \
+     obsidian \
+-    obs-studio \
+-    kdenlive \
+     moonlight-qt \
+     lazydocker \
+     omacut \
+diff --git a/bin/omarchy-remove-preinstalls b/bin/omarchy-remove-preinstalls
+index 0568213..5c56c73 100755
+--- a/bin/omarchy-remove-preinstalls
++++ b/bin/omarchy-remove-preinstalls
+@@ -20,12 +20,8 @@ if gum confirm "Are you sure you want to remove all preinstalled web apps, TUI w
+   omarchy-pkg-drop \
+     aether \
+     cliamp \
+-    libreoffice-fresh \
+-    xournalpp \
+     pinta \
+     obsidian \
+-    obs-studio \
+-    kdenlive \
+     moonlight-qt \
+     lazydocker \
+     omacut \

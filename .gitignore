@@ -1,0 +1,3 @@
+# Materialized trees and the upstream source cache. Build artifacts: the whole
+# point of the overlay model is that no upstream source is committed here.
+build/

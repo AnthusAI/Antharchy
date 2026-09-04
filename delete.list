@@ -1,0 +1,16 @@
+# Upstream files removed from the Antharchy tree.
+#
+# Each path must exist in the pinned upstream commit. If one does not,
+# apply-overlay.sh fails: upstream already deleted it and this list is stale.
+
+# 37signals web apps. Antharchy ships Claude and the Anthropic Console in
+# their place (see overlay/applications/). The mailto handler that backed
+# HEY.desktop goes with them -- patches 0030 and 0040 remove the two places
+# upstream wires it up.
+applications/Basecamp.desktop
+applications/HEY.desktop
+bin/omarchy-webapp-handler-hey
+
+# Icons for the two removed web apps.
+applications/icons/Basecamp.png
+applications/icons/HEY.png

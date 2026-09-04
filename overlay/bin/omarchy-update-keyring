@@ -1,0 +1,62 @@
+#!/bin/bash
+
+# omarchy:summary=Ensure the Antharchy and Arch keyring packages are installed and populated
+# omarchy:requires-sudo=true
+
+# Antharchy override of the upstream command.
+#
+# Two changes:
+#
+#   1. Our signing key and keyring package, not upstream's. Left as upstream's,
+#      this would trust a key we do not sign with and never trust the one we do
+#      -- and it runs on EVERY `omarchy update` (bin/omarchy-update), so it is
+#      a hot path. The fingerprint check short-circuits after the first run.
+#
+#   2. archlinuxarm-keyring on aarch64. Antharchy's ARM systems take core and
+#      extra from Arch Linux ARM, whose maintainer keys rotate independently of
+#      Arch's. Upstream has no reason to carry this because it publishes no ARM
+#      packages; without it, ALARM package verification degrades over time and
+#      eventually fails mid-update.
+
+ANTHARCHY_KEY_FPR=@@ANTHARCHY_KEY_FPR@@
+
+setup_antharchy_keyring() {
+  # The signing key is generated in Phase 3. Until project.conf carries a real
+  # fingerprint, refuse rather than trust a placeholder: an --lsign-key on the
+  # wrong fingerprint marks a key we do not control as locally trusted for
+  # package signing, which is worse than having no repo configured at all.
+  if [[ ! $ANTHARCHY_KEY_FPR =~ ^[0-9A-F]{40}$ ]]; then
+    echo "Antharchy signing key is not configured (got '$ANTHARCHY_KEY_FPR')." >&2
+    echo "Skipping Antharchy keyring setup; Arch keyrings are still refreshed." >&2
+    return 0
+  fi
+
+  if omarchy-pkg-present antharchy-keyring &&
+    sudo pacman-key --list-keys "$ANTHARCHY_KEY_FPR" &>/dev/null; then
+    return 0
+  fi
+
+  sudo pacman-key --recv-keys "$ANTHARCHY_KEY_FPR" --keyserver keys.openpgp.org
+  sudo pacman-key --lsign-key "$ANTHARCHY_KEY_FPR"
+
+  # Generally not a good idea, but this is a special case: the full package set
+  # is updated by omarchy-update-system-pkgs immediately after this, and that
+  # needs the latest keyring. Upstream's reasoning, kept.
+  sudo pacman -Sy
+  omarchy-pkg-add antharchy-keyring
+
+  sudo pacman-key --list-keys "$ANTHARCHY_KEY_FPR"
+}
+
+setup_antharchy_keyring
+
+# Maintainer keys can change without a package version bump, so always reinstall.
+echo -e "\e[32m\nUpdate Arch signing keys\e[0m"
+sudo pacman -Sy --noconfirm archlinux-keyring >/dev/null 2> >(grep -vE '^warning: archlinux-keyring-[^ ]+ is up to date -- reinstalling$' >&2)
+
+if [[ $(uname -m) == "aarch64" ]]; then
+  echo -e "\e[32mUpdate Arch Linux ARM signing keys\e[0m"
+  sudo pacman -Sy --noconfirm archlinuxarm-keyring >/dev/null 2> >(grep -vE '^warning: archlinuxarm-keyring-[^ ]+ is up to date -- reinstalling$' >&2)
+fi
+
+echo "Keys are correct"

@@ -1,0 +1,44 @@
+diff --git a/install/omarchy-base.packages b/install/omarchy-base.packages
+index c5013ba..7bd5126 100644
+--- a/install/omarchy-base.packages
++++ b/install/omarchy-base.packages
+@@ -15,6 +15,7 @@ brightnessctl
+ btop
+ chromium
+ clang
++claude-code
+ cliamp
+ cups
+ cups-filters
+@@ -62,7 +63,6 @@ inotify-tools
+ inxi
+ networkmanager
+ jq
+-kdenlive
+ kernel-modules-hook
+ lazydocker
+ lazygit
+@@ -70,7 +70,6 @@ less
+ libsecret
+ libvips
+ libyaml
+-libreoffice-fresh
+ llvm
+ localsend
+ lua51
+@@ -89,7 +88,6 @@ noto-fonts-cjk
+ noto-fonts-emoji
+ nss-mdns
+ nvim
+-obs-studio
+ obsidian
+ omacalc
+ omacut
+@@ -142,7 +140,6 @@ woff2-font-awesome
+ xdg-desktop-portal-gtk
+ xdg-desktop-portal-hyprland
+ xdg-terminal-exec
+-xournalpp
+ yaru-icon-theme
+ yay
+ yt-dlp

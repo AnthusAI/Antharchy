@@ -1,0 +1,28 @@
+# The upstream Omarchy tree Antharchy is built from.
+#
+# Every build materializes this exact commit and applies the overlay to it.
+# Nothing in this repository is a copy of upstream source; this file plus
+# patches/, overlay/ and delete.list is the entire description of the delta.
+#
+# Bump with: tools/bump-upstream.sh <sha|tag>
+# Never edit OMARCHY_COMMIT by hand -- the bump script validates that the
+# overlay still applies before it rewrites this file.
+
+OMARCHY_REPO=https://github.com/omacom/omarchy.git
+
+# v4.0.2. This is the same commit omacom/omarchy-pkgs pins for its own
+# omarchy 4.0.2 package, so we build the tree upstream actually shipped
+# rather than a moving branch head.
+OMARCHY_COMMIT=346e69e1cec6c4e8924531874af6ba010a1bc99e
+OMARCHY_TAG=v4.0.2
+
+# The version upstream ships this commit as. Note this deliberately does NOT
+# match the tree's own `version` file, which reads 4.0.0.alpha at every commit
+# on quattro -- that file is a dev marker, and the real version lives in the
+# package. `pkgver` comes from here; overlay/version restates it with our
+# suffix for humans.
+OMARCHY_VERSION=4.0.2
+
+# Bumped when the overlay changes without upstream moving. Combines with
+# OMARCHY_VERSION into the package release: 4.0.2-<ANTHARCHY_RELEASE>.
+ANTHARCHY_RELEASE=1
