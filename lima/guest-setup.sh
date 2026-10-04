@@ -3,9 +3,9 @@
 # the About bot avatar, and Option-as-Super (macOS steals Command from VNC).
 set -euo pipefail
 
-export OMARCHY_PATH=/antharchy
+export OMARCHY_PATH=/antharchy-repo/build/src
 export PATH="$OMARCHY_PATH/bin:$PATH"
-export HOME=/home/home.guest
+export HOME="$(getent passwd "$(id -un)" | cut -d: -f6)"
 
 sudo pacman -S --noconfirm --needed fastfetch gum ttf-nerd-fonts-symbols ttf-jetbrains-mono qt6-imageformats perl gtk3
 
@@ -14,15 +14,12 @@ sudo cp -a "$OMARCHY_PATH/etc/fastfetch/." /etc/fastfetch/
 sudo cp "$OMARCHY_PATH/default/fonts/omarchy/omarchy.ttf" /usr/share/fonts/omarchy/
 sudo ln -sfn /usr/share/fontconfig/conf.avail/10-nerd-font-symbols.conf /etc/fonts/conf.d/10-nerd-font-symbols.conf || true
 sudo fc-cache -f >/dev/null
-for cmd in omarchy-version omarchy-version-branch omarchy-version-channel omarchy-version-pkgs; do
-  sudo ln -sfn "$OMARCHY_PATH/bin/$cmd" "/usr/local/bin/$cmd"
-  sudo ln -sfn "$OMARCHY_PATH/bin/$cmd" "/usr/local/bin/${cmd/omarchy/antharchy}"
-done
-sudo install -m 0755 "$OMARCHY_PATH/lima/xdg-terminal-exec" /usr/bin/xdg-terminal-exec
-sudo ln -sfn /antharchy /usr/share/omarchy
-printf 'OMARCHY_PATH=/antharchy\n' | sudo tee /etc/omarchy.conf >/dev/null
+sudo install -m 0755 "/antharchy-repo/lima/xdg-terminal-exec" /usr/bin/xdg-terminal-exec
+sudo ln -sfn "$OMARCHY_PATH" /usr/share/omarchy
+printf 'OMARCHY_PATH=%s\n' "$OMARCHY_PATH" | sudo tee /etc/omarchy.conf >/dev/null
 
 # Everyday terminal should tile, matching the packaged EC2 session.
+mkdir -p "$HOME/.config/hypr"
 cat >"$HOME/.config/hypr/looknfeel.lua" <<'LUA'
 o.window({ class = "foot" }, { float = false })
 o.window({ class = "org.codeberg.dnkl.foot" }, { float = false })

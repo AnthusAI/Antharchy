@@ -17,8 +17,8 @@ images:
     digest: "sha256:e003d937b0f2a0230030a5a05116a62e9993c1db4bae6384fe3074c3fbb39eaa"
 
 mounts:
-  - location: "{{.Home}}/Projects/Antharchy"
-    mountPoint: "/antharchy"
+  - location: "{{.Home}}/Projects/antharchy-overlay"
+    mountPoint: "/antharchy-repo"
     writable: true
 
 containerd:
@@ -37,21 +37,18 @@ provision:
       set -eux
       usermod -aG video,seat,input,render "{{.User}}" || true
       if ! command -v Hyprland >/dev/null; then
-        pacman -Sy --noconfirm --needed jack2 hyprland wayvnc quickshell uwsm seatd foot mesa xdg-desktop-portal-hyprland grim jq ttf-jetbrains-mono fastfetch gum ttf-nerd-fonts-symbols qt6-imageformats perl gtk3
+        pacman -Syyu --noconfirm
+        pacman -S --noconfirm --needed jack2 hyprland wayvnc quickshell uwsm seatd foot mesa xdg-desktop-portal-hyprland grim jq ttf-jetbrains-mono fastfetch gum ttf-nerd-fonts-symbols qt6-imageformats perl gtk3
       fi
       systemctl enable --now seatd
       chmod a+rw /dev/dri/card0 /dev/dri/renderD128 || true
       mkdir -p /usr/local/bin /usr/share/fonts/omarchy /etc/fastfetch
-      for cmd in omarchy-version omarchy-version-branch omarchy-version-channel omarchy-version-pkgs; do
-        ln -sfn "/antharchy/bin/$cmd" "/usr/local/bin/$cmd"
-        ln -sfn "/antharchy/bin/$cmd" "/usr/local/bin/${cmd/omarchy/antharchy}"
-      done
-      install -m 0755 /antharchy/lima/xdg-terminal-exec /usr/bin/xdg-terminal-exec
+      install -m 0755 /antharchy-repo/lima/xdg-terminal-exec /usr/bin/xdg-terminal-exec
       mkdir -p /usr/share/xdg-terminal-exec
-      cp /antharchy/default/xdg-terminal-exec/hyprland-xdg-terminals.list /usr/share/xdg-terminal-exec/
+      cp /antharchy-repo/build/src/default/xdg-terminal-exec/hyprland-xdg-terminals.list /usr/share/xdg-terminal-exec/
       ln -sfn /usr/share/fontconfig/conf.avail/10-nerd-font-symbols.conf /etc/fonts/conf.d/10-nerd-font-symbols.conf || true
   - mode: user
     script: |
       #!/bin/bash
       set -eux
-      bash /antharchy/lima/guest-setup.sh
+      bash /antharchy-repo/lima/guest-setup.sh
